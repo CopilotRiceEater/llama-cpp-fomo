@@ -454,7 +454,7 @@ void quantize_turbo3_0(device const float * src, device block_turbo3_0 & dst) {
     }
 
     // Step 4: inverse rotate reconstruction in-place, compute residual
-    turbo_rotate_inverse(recon, turbo_wht_signs1, turbo_wht_signs2);
+    // turbo_rotate_inverse REMOVED — pre-rotate-queries handles this
 
     float rnorm_sq = 0.0f;
     for (int j = 0; j < 128; j++) {
@@ -517,7 +517,7 @@ void quantize_turbo4_0(device const float * src, device block_turbo4_0 & dst) {
     }
 
     // Step 4: inverse WHT rotation + residual
-    turbo_rotate_inverse(recon, turbo_wht_signs1, turbo_wht_signs2);
+    // turbo_rotate_inverse REMOVED — pre-rotate-queries handles this
     float rnorm_sq = 0.0f;
     for (int j = 0; j < 128; j++) {
         x[j] = normalized[j] - recon[j]; // residual in x buffer
@@ -550,14 +550,14 @@ static void turbo3_dequantize_full_block(device const block_turbo3_0 * xb, threa
         uint8_t idx = (xb->qs[j / 4] >> ((j % 4) * 2)) & 0x3;
         recon[j] = turbo_centroids_2bit[idx];
     }
-    turbo_rotate_inverse(recon, turbo_wht_signs1, turbo_wht_signs2);
+    // turbo_rotate_inverse REMOVED — pre-rotate-queries handles this
 
     // QJL correction: unpack signs, inverse WHT rotate, scale
     float signs_f[128];
     for (int j = 0; j < 128; j++) {
         signs_f[j] = (xb->signs[j / 8] & (1 << (j % 8))) ? 1.0f : -1.0f;
     }
-    turbo_rotate_inverse(signs_f, turbo_qjl_wht_signs1, turbo_qjl_wht_signs2);
+    // turbo_rotate_inverse(QJL) REMOVED — pre-rotate-queries handles this
 
     // Combine: (mse_recon + qjl_correction) * norm
     for (int i = 0; i < 128; i++) {
@@ -611,14 +611,14 @@ static void turbo4_dequantize_full_block(device const block_turbo4_0 * xb, threa
         uint8_t idx = (uint8_t)((raw >> bit_pos) & 0x7);
         recon[j] = turbo_centroids_3bit[idx];
     }
-    turbo_rotate_inverse(recon, turbo_wht_signs1, turbo_wht_signs2);
+    // turbo_rotate_inverse REMOVED — pre-rotate-queries handles this
 
     // QJL: unpack signs, inverse WHT, scale
     float signs_f[128];
     for (int j = 0; j < 128; j++) {
         signs_f[j] = (xb->signs[j / 8] & (1 << (j % 8))) ? 1.0f : -1.0f;
     }
-    turbo_rotate_inverse(signs_f, turbo_qjl_wht_signs1, turbo_qjl_wht_signs2);
+    // turbo_rotate_inverse(QJL) REMOVED — pre-rotate-queries handles this
 
     for (int i = 0; i < 128; i++) {
         cache[i] = (recon[i] + signs_f[i] * qjl_scale) * norm;
