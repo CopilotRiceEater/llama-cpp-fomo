@@ -583,6 +583,19 @@ struct llm_tokenizer_bpe_session {
                 if (tok != LLAMA_TOKEN_NULL) {
                     symbols.emplace_back(llm_symbol{-1, -1, word.c_str(), word.size()});
                     offset = word.size();
+                } else {
+                    // tok == NULL: \n 시퀀스가 vocab에 없는 경우.
+                    // offset을 전진시키지 않으면 while 루프에서 \n이 개별 llm_symbol로
+                    // 분리되어 find_bpe_rank()에 전달되고 assertion failure가 발생한다.
+                    // byte 단위로 직접 output에 추가하고 while 루프를 건너뛴다.
+                    for (size_t i = 0; i < word.size(); ++i) {
+                        std::string byte_str(1, word[i]);
+                        auto byte_tok = vocab.text_to_token(byte_str);
+                        if (byte_tok != LLAMA_TOKEN_NULL) {
+                            output.push_back(byte_tok);
+                        }
+                    }
+                    offset = word.size();
                 }
             }
 

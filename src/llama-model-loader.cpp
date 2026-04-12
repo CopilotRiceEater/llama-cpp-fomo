@@ -374,9 +374,10 @@ namespace GGUFMeta {
             }
         } else {
             if (arr_info.gt == GGUF_TYPE_BOOL) {
-                std::transform((const bool *)arr_info.data, (const bool *)arr_info.data + arr_info.length, result.begin(), [](bool x) {
-                    return static_cast<T>(x);
-                });
+                const uint8_t * bdata = (const uint8_t *)arr_info.data;
+                for (size_t i = 0; i < arr_info.length; ++i) {
+                    result[i] = static_cast<T>(bdata[i] != 0);
+                }
             } else {
                 std::copy((const T*)arr_info.data, (const T *)arr_info.data + arr_info.length, result.begin());
             }
