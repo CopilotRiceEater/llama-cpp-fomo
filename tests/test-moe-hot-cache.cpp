@@ -18,6 +18,18 @@
 #include <string>
 #include <vector>
 
+// MSVC compatibility: setenv/unsetenv are POSIX and not provided by the
+// Windows C runtime. Map to the MSVC-native _putenv_s so the tests compile
+// under MSVC / Ninja without branching every call site.
+#if defined(_MSC_VER)
+static inline int setenv(const char * name, const char * value, int /*overwrite*/) {
+    return _putenv_s(name, value);
+}
+static inline int unsetenv(const char * name) {
+    return _putenv_s(name, "");
+}
+#endif
+
 // Minimal harness: construct a real ggml CPU backend (not CUDA) so the test
 // runs anywhere. The FILLING/STEADY logic is platform-independent — CUDA
 // cudaMemcpyAsync is stubbed out via #ifdef GGML_USE_CUDA in the impl.
