@@ -10,6 +10,11 @@
 #include <algorithm>
 #include <omp.h>
 
+#if defined(_MSC_VER)
+#include <intrin.h>
+#define __builtin_prefetch(addr, rw, locality) _mm_prefetch((const char *)(addr), _MM_HINT_T0)
+#endif
+
 static inline float silu_f32(float x) {
     return x / (1.0f + expf(-x));
 }
