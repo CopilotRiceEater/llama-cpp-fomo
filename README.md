@@ -76,11 +76,6 @@ This fork exists to scratch a very specific itch. Issues for unsupported scenari
 - **Benchmarks**: see [BENCHMARKS.md](BENCHMARKS.md) for reproducible numbers.
 - **Upstream attributions and license details**: see [CREDITS.md](CREDITS.md) and [LICENSE](LICENSE).
 
----
-
-## Why no pre-built binaries
-
-Binaries would attract support requests for scenarios this fork doesn't actively test. Building from source is the filter — if you can build this, you can also read logs and file a useful bug report.
 
 ---
 
