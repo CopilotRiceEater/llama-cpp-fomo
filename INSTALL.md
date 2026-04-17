@@ -1,8 +1,8 @@
 # Building llama-cpp-fomo on Windows
 
-Target: **RTX 5090 (sm_120a) + MSVC + CUDA + Ninja**. Validated end-to-end from a fresh clone (MSVC 19.44 + CUDA 13.0, Ryzen 9 9950X3D, Windows 11).
+Primary target: **RTX 5090 (sm_120a) + MSVC + CUDA + Ninja**. Validated end-to-end from a fresh clone (MSVC 19.44 + CUDA 13.0, Ryzen 9 9950X3D, Windows 11).
 
-Other configurations probably work but aren't tested.
+Also supported: any RTX 30/40-series card — swap `CMAKE_CUDA_ARCHITECTURES` to `86` (Ampere) or `89` (Ada Lovelace). Parmesan's original benchmark data is on RTX 4090, so pre-Blackwell is well-trodden ground. See [Building for other RTX GPUs](#building-for-other-rtx-gpus) below.
 
 ---
 
@@ -207,15 +207,24 @@ Parmesan hot-cache is in FILLING mode initially. Takes ~300 decodes to transitio
 
 ---
 
-## Building for other GPUs
+## Building for other RTX GPUs
 
-Not officially supported, but if you want to try:
+The fork's merged upstreams (TurboQuant, Parmesan) use general CUDA features without Blackwell-specific kernels, so any RTX 30/40/50-series card builds fine — just change `CMAKE_CUDA_ARCHITECTURES` to match. Parmesan's original benchmark data is on RTX 4090 (sm_89), so pre-Blackwell is actually the hot-cache's *original* validation target.
 
-- **Ada (4090, etc.)**: `CMAKE_CUDA_ARCHITECTURES=89`. Parmesan hot-cache mechanism may work but isn't validated here.
-- **Ampere (3090)**: `86`. Older than ParmesanParty's main test target (they use 4090). Proceed with caution.
-- **Multi-arch binary**: `CMAKE_CUDA_ARCHITECTURES=89;120a` — larger binary but runs on both.
+| GPU family | Cards (examples) | `CMAKE_CUDA_ARCHITECTURES` |
+|---|---|---|
+| Blackwell | RTX 5070 / 5080 / 5090 | `120a` |
+| Ada Lovelace | RTX 4060 / 4070 / 4080 / 4090 | `89` |
+| Ampere | RTX 3060 / 3070 / 3080 / 3090 | `86` |
+| Multi-arch binary | any of the above | `86;89;120a` (larger binary, runs on all three) |
 
-Expect lower tg than the 5090 numbers due to VRAM bandwidth and CUDA core differences.
+**Practical notes for non-5090 cards**:
+- **VRAM is the real bottleneck, not compute**. The 42 t/s Qwen3.5-122B-A10B headline needs ~26 GB VRAM for `hot-k=128`. On 10-16 GB cards use smaller quants (IQ2_XXS / IQ1_M for 122B, or smaller dense models). On 24 GB (3090/4090), `hot-k=64` range with UD-IQ3_S should land in a workable spot.
+- **Flash Attention on sm_86/sm_89**: fully supported by llama.cpp for the quants we test; no fork-level regression.
+- **turbo3 KV**: arch-neutral, no Blackwell dependency.
+- **MXFP4**: Ada / Ampere don't have the Blackwell-native MXFP4 repack path, so the *combined* MXFP4 + Parmesan incompatibility is a Blackwell-only issue; non-Blackwell cards don't hit it (but also don't get Blackwell's MXFP4 speed benefits).
+
+No separate build instructions — everything else in this file applies, just swap the arch number.
 
 ---
 

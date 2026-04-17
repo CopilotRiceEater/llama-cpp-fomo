@@ -1,6 +1,6 @@
 # llama-cpp-fomo
 
-**Kitchen-sink llama.cpp build for Windows + RTX 5090 + big MoE models.**
+**Kitchen-sink llama.cpp build for Windows + NVIDIA RTX (30/40/50 series) + big MoE models.** Headline benches on RTX 5090; Ada / Ampere supported by changing one CMake flag.
 
 A three-way merge of [llama.cpp](https://github.com/ggml-org/llama.cpp) upstream,
 [TheTom/llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboquant) (3-bit KV cache),
@@ -55,7 +55,7 @@ The 42 t/s number combines **TurboQuant turbo3 KV** with **Parmesan MoE hot-cach
 ### Supported
 
 - **Windows 10/11** with MSVC Visual Studio 2022+
-- **CUDA** build for **NVIDIA RTX 5090** (Blackwell, sm_120a)
+- **NVIDIA RTX 30/40/50 series** — build-time `CMAKE_CUDA_ARCHITECTURES` picks the target (`86` Ampere / `89` Ada / `120a` Blackwell, or multi-arch). Parmesan's original benchmark data is on RTX 4090, so pre-Blackwell is explicitly supported, not a fallback. Headline numbers in this repo are measured on RTX 5090 because that's what we have.
 - **MoE models with CPU offload** (`-n-cpu-moe N`): Qwen3.5-MoE, Gemma 4 MoE, Mixtral-style layouts
 - **Dense models with turbo3 KV** (all archs)
 - Validated: Qwen3.5-122B-A10B, Gemma 4 31B / 26B-MoE, Qwopus3.5-27B-v3
@@ -63,8 +63,7 @@ The 42 t/s number combines **TurboQuant turbo3 KV** with **Parmesan MoE hot-cach
 ### Not supported / known broken
 
 - **Linux** — not tested, patches may not even apply cleanly
-- **Other GPU architectures** — CMake configured for sm_120a only; change `CMAKE_CUDA_ARCHITECTURES` if building for others, but no guarantee the Parmesan hot-cache path works on pre-Blackwell
-- **MXFP4 + Parmesan hot-cache** — Blackwell's native MXFP4 repack is incompatible with Parmesan's raw CPU-byte memcpy into GPU slots. Use MXFP4 OR hot-cache, not both.
+- **MXFP4 + Parmesan hot-cache** — Blackwell's native MXFP4 repack is incompatible with Parmesan's raw CPU-byte memcpy into GPU slots. Use MXFP4 OR hot-cache, not both. Non-Blackwell cards don't have the MXFP4 repack path so this specific clash doesn't apply, but they also don't get MXFP4's Blackwell-native speed benefits.
 - **AMD / Intel GPUs** — Vulkan, ROCm, SYCL not tested
 
 ### Philosophy
