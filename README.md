@@ -86,7 +86,6 @@ Binaries would attract support requests for scenarios this fork doesn't actively
 
 ## Related reading
 
-- Korean write-up with the full experimental journey (hot-k sweep, PCIe Gen4→Gen5 null result, thinking ON/OFF analysis): [아카라이브 게시글 TBD]
 - TurboQuant project: https://github.com/TheTom/llama-cpp-turboquant
 - Parmesan project: https://github.com/ParmesanParty/llama.cpp
 - Upstream llama.cpp: https://github.com/ggml-org/llama.cpp
