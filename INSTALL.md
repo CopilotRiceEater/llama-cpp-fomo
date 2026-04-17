@@ -1,6 +1,32 @@
 # Building llama-cpp-fomo on Windows
 
-Target: **RTX 5090 (sm_120a) + MSVC + CUDA**. Other configurations probably work but aren't tested.
+Target: **RTX 5090 (sm_120a) + MSVC + CUDA + Ninja**. Validated end-to-end from a fresh clone (MSVC 19.44 + CUDA 13.0, Ryzen 9 9950X3D, Windows 11).
+
+Other configurations probably work but aren't tested.
+
+---
+
+## Shell note
+
+Command blocks below use **CMD caret (`^`) line continuation**, which works in:
+- `x64 Native Tools Command Prompt for VS 2022`
+- Plain `cmd.exe` with VS environment activated
+
+If you prefer **PowerShell** (7+ or Developer PowerShell for VS 2022), replace `^` with backtick `` ` `` at line ends. Example:
+
+```powershell
+cmake -B build-sm120a -G "Ninja" `
+  -DCMAKE_BUILD_TYPE=Release `
+  -DCMAKE_CUDA_ARCHITECTURES=120a
+```
+
+To activate the VS environment inside a plain PowerShell session:
+
+```powershell
+& "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\Launch-VsDevShell.ps1" -Arch amd64
+```
+
+(Replace `Community` with `Professional` / `Enterprise` if that's your VS edition. Note: this script changes the working directory — `cd` back to your repo afterwards.)
 
 ---
 
@@ -74,36 +100,48 @@ cmake -B build-sm120a -G "Ninja" ^
 ## Build
 
 ```
-cmake --build build-sm120a --config Release -j 16
+cmake --build build-sm120a --config Release -j 32
 ```
 
-Typical build time: **15-25 minutes** on Ryzen 9 9950X3D. CUDA Flash Attention kernels dominate compile time.
+Typical build time: **8-15 minutes** on Ryzen 9 9950X3D with `-j 32`. CUDA Flash Attention kernels dominate — nvcc stages within them don't parallelize well, so raising `-j` past physical core count has diminishing returns.
 
-Output:
+**RAM note**: heavy CUDA compile can hit 2-4 GB per nvcc process. On 32 GB systems, drop `-j` to 8-12 to avoid swap thrashing.
+
+Output (Ninja generator — binaries go into `bin/` directly):
 ```
-build-sm120a\bin\Release\
+build-sm120a\bin\
   llama-server.exe
   llama-cli.exe
   llama-bench.exe
   ...
 ```
 
+The **Visual Studio generator** (`-G "Visual Studio 17 2022"` instead of `"Ninja"`) puts outputs into `build-sm120a\bin\Release\` instead, matching the `--config` flag. Use whichever layout your scripts expect.
+
 ---
 
 ## Verify
 
-Quick sanity check with any small model:
+Quick sanity check (paths below assume Ninja output layout — add `Release\` between `bin\` and the exe name if you used the VS generator):
 
 ```
-build-sm120a\bin\Release\llama-bench.exe -m path\to\small-model.gguf -ngl 99 -p 512 -n 128
+build-sm120a\bin\llama-bench.exe -m path\to\small-model.gguf -ngl 99 -p 512 -n 128
 ```
+
+Or just get the version to confirm CUDA is linked:
+
+```
+build-sm120a\bin\llama-server.exe --version
+```
+
+Expected output: CUDA device line with your GPU's name + VRAM, compute capability (12.0 on RTX 5090), and MSVC compiler version.
 
 Should show CUDA backend active and produce tg/pp numbers. If it crashes on load, see [Troubleshooting](#troubleshooting).
 
 For a real-world test with this fork's headline features:
 
 ```
-build-sm120a\bin\Release\llama-server.exe ^
+build-sm120a\bin\llama-server.exe ^
   --model path\to\Qwen3.5-122B-A10B-UD-IQ3_S.gguf ^
   --n-gpu-layers 99 ^
   --no-mmap ^
@@ -118,7 +156,7 @@ build-sm120a\bin\Release\llama-server.exe ^
   --port 8080
 ```
 
-Expect ~42 t/s on RTX 5090.
+Expect ~42 t/s on RTX 5090. See [BENCHMARKS.md](BENCHMARKS.md) for other validated configurations.
 
 ---
 
@@ -127,6 +165,18 @@ Expect ~42 t/s on RTX 5090.
 ### Build fails at `src/llama-moe-fused-cold.cpp` with `'__builtin_prefetch' is undefined`
 
 You're on an older checkout. This fork already replaces it with `_mm_prefetch` via a macro guard. If you see this error, you may have merged upstream changes that reverted it — re-apply the patch in `src/llama-moe-fused-cold.cpp`.
+
+### `fatal error C1083: 'cuda_runtime.h': No such file or directory`
+
+This happens when using the Ninja generator (VS generator papers over it via MSBuild auto-integration). Fixed in this fork by `target_include_directories(llama PRIVATE ${CUDAToolkit_INCLUDE_DIRS})` in `src/CMakeLists.txt`. If you see it anyway, confirm your checkout contains that line and that CUDA Toolkit is installed + `CUDA_PATH` env var resolves.
+
+### `error LNK2005: cudaGetExportTable ... already defined` / `LNK1169: multiple symbols`
+
+`cudart.lib` (dynamic) and `cudart_static.lib` (static) are both being linked. This fork's `src/CMakeLists.txt` deliberately adds only the *include dirs*, not a second cudart library. If you see it, you've likely added `target_link_libraries(llama PRIVATE CUDA::cudart)` somewhere — remove it. ggml-cuda is already pulling the correct variant.
+
+### `tests/test-moe-hot-cache.cpp`: `'setenv' / 'unsetenv': identifier not found`
+
+MSVC doesn't provide POSIX env helpers. This fork adds a `_MSC_VER`-guarded `_putenv_s` shim at the top of that file. If you hit this, confirm your checkout has the shim. Alternatively, build without tests: `-DLLAMA_BUILD_TESTS=OFF`.
 
 ### Link error: `unresolved external symbol turbo3_cpu_wht_group_size`
 

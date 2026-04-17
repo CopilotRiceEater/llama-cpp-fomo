@@ -42,7 +42,11 @@ The 42 t/s number combines **TurboQuant turbo3 KV** with **Parmesan MoE hot-cach
 |---|---|---|
 | MSVC bool-array parsing fix in `get_arr<bool>` | `src/llama-model-loader.cpp` | MSVC Release optimization breaks GGUF bool-array parsing; `swa_layers` in Gemma 4 and similar SWA models gets corrupted. Replaced with explicit `uint8_t*` loop. Not yet reported upstream. |
 | `__builtin_prefetch` → `_mm_prefetch` | `src/llama-moe-fused-cold.cpp` | Parmesan cold kernel uses GCC-only builtin; MSVC needs the SSE intrinsic. |
-| Static-link build path | `CMakeLists.txt` | `BUILD_SHARED_LIBS=OFF` required because TurboQuant's `turbo3_cpu_wht_group_size` symbol doesn't export across ggml-base → ggml-cpu DLL boundary. |
+| CUDA include path for `llama` target | `src/CMakeLists.txt` | Parmesan-added `.cpp` files in `src/` include `<cuda_runtime.h>` but upstream's `src/CMakeLists.txt` doesn't link any CUDA target. VS generator papered over it via MSBuild auto-integration; Ninja exposed the bug. Fix: `target_include_directories(llama PRIVATE ${CUDAToolkit_INCLUDE_DIRS})` when `GGML_CUDA` is on. |
+| MSVC `setenv`/`unsetenv` shim | `tests/test-moe-hot-cache.cpp` | Parmesan test uses POSIX env helpers that don't exist in the Windows CRT. Added a `_MSC_VER`-guarded `_putenv_s`-based shim matching the pattern already used in `test-arg-parser.cpp`. |
+| `tools/server` keepalive/sleep endpoints removed | `tools/server/server-context.{cpp,h}`, `tools/server/server.cpp` | Parmesan cherry-pick references symbols from a precursor commit (`efdde0cf1`) not included in this fork. Removing the dependent handlers makes the build link. Functionality lost: `POST /keepalive`, `POST /sleep`. Restore by cherry-picking that commit. |
+
+`BUILD_SHARED_LIBS=OFF` is a hard build-time requirement (TurboQuant's `turbo3_cpu_wht_group_size` symbol doesn't export across the `ggml-base` → `ggml-cpu` DLL boundary). Enforced via the recommended CMake flags in [INSTALL.md](INSTALL.md).
 
 ---
 

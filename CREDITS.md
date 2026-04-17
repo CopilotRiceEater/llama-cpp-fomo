@@ -56,6 +56,29 @@ All patches below are original work in this fork. Release them upstream freely; 
 - Symptom: TurboQuant's `turbo3_cpu_wht_group_size` symbol doesn't export cleanly across the `ggml-base` → `ggml-cpu` DLL boundary. Shared-library builds fail at runtime.
 - Fix: enforce `BUILD_SHARED_LIBS=OFF` + `GGML_STATIC=ON` in this fork's build path. Documented in `INSTALL.md`.
 
+### `src/CMakeLists.txt` CUDA include (Ninja compatibility)
+
+- File: `src/CMakeLists.txt`
+- Symptom: `src/llama-context.cpp` and `src/llama-moe-hot-cache.cpp` include `<cuda_runtime.h>` when `GGML_USE_CUDA` is defined, but upstream's `src/CMakeLists.txt` doesn't add any CUDA target to the `llama` library. Ninja generator produces `cuda_runtime.h: No such file or directory`.
+- Why upstream didn't notice: the Visual Studio generator auto-resolves CUDA include paths through MSBuild integration when a project already uses CUDA, papering over the missing explicit dependency.
+- Fix: `target_include_directories(llama PRIVATE ${CUDAToolkit_INCLUDE_DIRS})` inside a `if (GGML_CUDA)` guard. Include dirs only — **not** a `target_link_libraries(... CUDA::cudart)`, because ggml-cuda already links the correct cudart variant; adding a second one produces `LNK2005` duplicate-symbol errors.
+- Status: could be upstreamed to ParmesanParty.
+
+### `tests/test-moe-hot-cache.cpp` MSVC env-helper shim
+
+- File: `tests/test-moe-hot-cache.cpp`
+- Symptom: POSIX `setenv` and `unsetenv` are not provided by the Windows C runtime; compile fails with `error C3861: 'setenv': identifier not found`.
+- Fix: `_MSC_VER`-guarded `static inline` shims that delegate to `_putenv_s`. Matches the existing pattern in `test-arg-parser.cpp` (which uses `#ifdef` skip instead).
+- Status: could be upstreamed to ParmesanParty.
+
+### `tools/server` keepalive/sleep endpoints removed (merge artifact)
+
+- Files: `tools/server/server-context.cpp`, `tools/server/server-context.h`, `tools/server/server.cpp`
+- Symptom: Parmesan cherry-picks reference symbols from precursor commit `efdde0cf1` that wasn't included in this fork. Link fails if the handlers stay.
+- Fix: remove the dependent `post_keepalive` / `post_sleep` handlers and their route bindings.
+- Functionality lost: `POST /keepalive` (model wake-up ping), `POST /sleep` (idle timer control). Most single-model server workflows don't use these.
+- Restore: cherry-pick `efdde0cf1` from upstream llama.cpp and revert this removal.
+
 ---
 
 ## Models referenced in benchmarks
