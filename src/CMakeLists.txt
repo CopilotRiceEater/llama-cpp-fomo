@@ -177,11 +177,14 @@ endif()
 # MoE hot cache (llama-moe-hot-cache.cpp) and context (llama-context.cpp)
 # include <cuda_runtime.h> when GGML_USE_CUDA is defined. The Visual Studio
 # generator picks up CUDA include paths automatically via MSBuild integration,
-# but Ninja / Makefiles do not -- so link CUDA::cudart explicitly whenever the
-# CUDA backend is enabled. This propagates its include dirs to this target.
+# but Ninja / Makefiles do not -- so add CUDAToolkit include dirs explicitly
+# whenever the CUDA backend is enabled. We deliberately do NOT link any CUDA
+# library here: ggml-cuda already pulls in the correct cudart variant
+# (static vs dynamic), and linking a second one here produces LNK2005/LNK1169
+# (duplicate symbols like cudaGetExportTable).
 if (GGML_CUDA)
     find_package(CUDAToolkit REQUIRED)
-    target_link_libraries(llama PRIVATE CUDA::cudart)
+    target_include_directories(llama PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
 endif()
 
 if (BUILD_SHARED_LIBS)
