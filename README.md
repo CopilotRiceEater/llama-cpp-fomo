@@ -42,7 +42,7 @@ The 42 t/s number combines **TurboQuant turbo3 KV** with **Parmesan MoE hot-cach
 |---|---|---|
 | MSVC bool-array parsing fix in `get_arr<bool>` | `src/llama-model-loader.cpp` | MSVC Release optimization breaks GGUF bool-array parsing; `swa_layers` in Gemma 4 and similar SWA models gets corrupted. Replaced with explicit `uint8_t*` loop. Not yet reported upstream. |
 | `__builtin_prefetch` → `_mm_prefetch` | `src/llama-moe-fused-cold.cpp` | Parmesan cold kernel uses GCC-only builtin; MSVC needs the SSE intrinsic. |
-| Static-link build path | `CMakeLists.txt` + build scripts | `BUILD_SHARED_LIBS=OFF` required because TurboQuant's `turbo3_cpu_wht_group_size` symbol doesn't export across ggml-base → ggml-cpu DLL boundary. |
+| Static-link build path | `CMakeLists.txt` | `BUILD_SHARED_LIBS=OFF` required because TurboQuant's `turbo3_cpu_wht_group_size` symbol doesn't export across ggml-base → ggml-cpu DLL boundary. |
 
 ---
 
@@ -72,7 +72,6 @@ This fork exists to scratch a very specific itch. Issues for unsupported scenari
 ## Quick orientation
 
 - **Building**: see [INSTALL.md](INSTALL.md). Non-trivial on Windows — read it carefully.
-- **Running**: example `.bat` scripts in `scripts/` for validated model configurations.
 - **Benchmarks**: see [BENCHMARKS.md](BENCHMARKS.md) for reproducible numbers.
 - **Upstream attributions and license details**: see [CREDITS.md](CREDITS.md) and [LICENSE](LICENSE).
 
