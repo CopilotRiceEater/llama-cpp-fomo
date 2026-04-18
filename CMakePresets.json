@@ -32,6 +32,21 @@
     { "name": "vulkan",   "hidden": true, "cacheVariables": { "GGML_VULKAN":      "ON" } },
 
     {
+        "name": "x64-windows-msvc-common", "hidden": true,
+        "cacheVariables": {
+            "CMAKE_ASM_COMPILER": "ml64"
+        }
+    },
+    {
+        "name": "cuda", "hidden": true,
+        "cacheVariables": {
+            "GGML_CUDA": "ON",
+            "GGML_CUDA_FA_ALL_QUANTS": "ON",
+            "CMAKE_CUDA_ARCHITECTURES": "native"
+        }
+    },
+
+    {
         "name": "x64-windows-llvm", "hidden": true,
         "cacheVariables": {
             "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/x64-windows-llvm.cmake"
@@ -80,9 +95,13 @@
     { "name": "x64-windows-llvm-reldbg", "inherits": [ "base", "x64-windows-llvm", "reldbg" ] },
     { "name": "x64-windows-llvm+static-release", "inherits": [ "base", "x64-windows-llvm", "reldbg", "static" ] },
 
-    { "name": "x64-windows-msvc-debug", "inherits": [ "base", "debug" ] },
-    { "name": "x64-windows-msvc-release", "inherits": [ "base", "reldbg" ] },
-    { "name": "x64-windows-msvc+static-release", "inherits": [ "base", "reldbg", "static" ] },
+    { "name": "x64-windows-msvc-debug", "inherits": [ "base", "x64-windows-msvc-common", "debug" ] },
+    { "name": "x64-windows-msvc-release", "inherits": [ "base", "x64-windows-msvc-common", "reldbg" ] },
+    { "name": "x64-windows-msvc+static-release", "inherits": [ "base", "x64-windows-msvc-common", "reldbg", "static" ] },
+
+    { "name": "x64-windows-msvc-cuda-release", "inherits": [ "base", "x64-windows-msvc-common", "cuda", "release" ] },
+    { "name": "x64-windows-msvc-cuda-reldbg", "inherits": [ "base", "x64-windows-msvc-common", "cuda", "reldbg" ] },
+    { "name": "x64-windows-msvc-cuda+static-release", "inherits": [ "base", "x64-windows-msvc-common", "cuda", "release", "static" ] },
 
     { "name": "x64-windows-sycl-debug", "inherits": [ "sycl-base", "debug" ] },
     { "name": "x64-windows-sycl-debug-f16", "inherits": [ "sycl-base", "debug", "sycl_f16" ] },

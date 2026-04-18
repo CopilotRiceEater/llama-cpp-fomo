@@ -173,6 +173,17 @@ cmake -B build -DGGML_CUDA=ON
 cmake --build build --config Release
 ```
 
+#### Windows + MSVC preset (fomo fork)
+
+On Windows with CMake 4.1+ the ggml ASM language cannot be auto-detected for MSVC (policy `CMP0194` is set to `NEW`). The `x64-windows-msvc-cuda-*` presets pre-wire `CMAKE_ASM_COMPILER=ml64` and common CUDA flags. Run from a Developer PowerShell for VS 2022:
+
+```powershell
+cmake --preset x64-windows-msvc-cuda-release
+cmake --build build-x64-windows-msvc-cuda-release --config Release -j
+```
+
+Variants: `-cuda-reldbg` (RelWithDebInfo) and `-cuda+static-release` (required when linking turboquant / hot-cache features due to cross-DLL symbol visibility).
+
 ### Non-Native Builds
 
 By default llama.cpp will be built for the hardware that is connected to the system at that time.
